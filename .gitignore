@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+.dist/
+dist/
+build/
+
+# Virtual environments
+.venv/
+.env/
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+build/
+
+# Editors/OS
+*.swp
+.DS_Store
+Thumbs.db

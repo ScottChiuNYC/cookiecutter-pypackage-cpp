@@ -1,6 +1,8 @@
-{{ cookiecutter.project_name }}
+# Cookiecutter PyPackage With C++ Component (WIP)
 
 CMake + pybind11 + uv (packaged via scikit-build-core)
+
+uvx cookiecutter gh:scottchiunyc/cookiecutter-pypackage-cpp
 
 ## How To Run
 

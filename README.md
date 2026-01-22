@@ -53,7 +53,7 @@ uvx cookiecutter gh:scottchiunyc/cookiecutter-pypackage-cpp
 * AI recommends to keep both examples and (not yet created) docs folders and have docs reference examples so that docs is synced
     * Look into sphinx `literalinclude` and `sphinx-gallery`
     * Examples can be smoked-tested in CI (build and optionally run with a CMake toggle `BUILD_EXAMPLES`) to ensure docs stay accurate
-* pybind11 is currently fetched from GitHub. It was added by vcpkg but the dependencies might fail to download if you are behind a corporate corporate firewall its. The fetch-from-GitHub trick works well with header-only libraries but for compiled libraries the setup will be more complicated
+* pybind11 is currently fetched from GitHub. It was added by vcpkg but the dependencies might fail to download if you are behind a corporate corporate firewall. The fetch-from-GitHub trick works well with header-only libraries but for compiled libraries the setup will be more complicated
 * TODO: pytest, jupyter notebook demo, sphinx docs
 * TODO: Is `.vscode/c_cpp_properties.json` needed in order for IntelliSense to work properly? That's not the case for dlc
 * TODO: After poetry upgrade, run `poetry config --migrate` to fix `pyproject.toml` for broken projects

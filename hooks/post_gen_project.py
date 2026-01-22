@@ -5,10 +5,10 @@ msg = textwrap.dedent(
     Project '{{ cookiecutter.project_name }}' generated.
 
     Next steps (Windows):
-      1) poetry build
-      2) Test: .\\build\\tests\\cpp\\Release\\{{ cookiecutter.module_name }}_core_test.exe
-      3) Install: Run update_package.bat
-      4) Python: poetry run python -c "from {{ cookiecutter.module_name }} import Point; p = Point(0, 0); print(p.GetCoordinates())"
+      1) Build Wheel: poetry build
+      2) Run GTest on C++: .\\build\\tests\\cpp\\Release\\{{ cookiecutter.module_name }}_core_test.exe
+      3) Install Wheel: Run update_package.bat
+      4) Run in Python: poetry run python -c "from {{ cookiecutter.module_name }} import Point; p = Point(0, 0); print(p.GetCoordinates())"
 
     Requirements: 
       - CMake {{ cookiecutter.cmake_min_version }}+

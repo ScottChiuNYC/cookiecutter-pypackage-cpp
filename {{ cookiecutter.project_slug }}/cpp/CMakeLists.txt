@@ -13,9 +13,17 @@ target_include_directories({{ cookiecutter.module_name }}_core_static PUBLIC
 
 # pybind11 CMake integration:
 
+include(FetchContent)
+FetchContent_Declare(
+  pybind11
+  GIT_REPOSITORY    https://github.com/pybind/pybind11.git
+  GIT_TAG           v3.0.1
+)
+FetchContent_MakeAvailable(pybind11)
+
 # Easy
 set(PYBIND11_FINDPYTHON ON)
-find_package(pybind11 CONFIG REQUIRED)
+# find_package(pybind11 CONFIG REQUIRED)
 pybind11_add_module({{ cookiecutter.module_name }}_core bindings/point_bindings.cpp)
 target_link_libraries({{ cookiecutter.module_name }}_core PRIVATE {{ cookiecutter.module_name }}_core_static)
 

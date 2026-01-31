@@ -7,7 +7,7 @@ msg = textwrap.dedent(
     Next steps (Windows):
       1) Build Wheel: poetry build
       2) Run GTest on C++: .\\build\\tests\\cpp\\Release\\{{ cookiecutter.module_name }}_core_test.exe
-      3) Install Wheel and Run in Python: update_package.bat
+      3) Build, Install and Run in Python: update_package.bat
 
     Requirements: 
       - CMake {{ cookiecutter.cmake_min_version }}+

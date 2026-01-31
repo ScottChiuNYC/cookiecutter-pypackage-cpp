@@ -43,9 +43,11 @@ uvx cookiecutter gh:scottchiunyc/cookiecutter-pypackage-cpp
 * `poetry shell` to create/activate venv for the project
     * This requires `poetry` and `poetry-plugin-shell` pip installed in the system
 * `poetry install` to install packages as specified in `pyproject.toml`
+    * `poetry install` triggers `build.py` too and the project itself will be installed in editable mode which means any Python code changes are reflected immediately
+    * But if any C++ code changes, `poetry install` has to be triggered again so that the changes are reflected
 * `poetry add numpy` to add `numpy` to Python dependencies
 * `poetry build` to build wheel
-* Run `update_package.bat` to pip uninstall and pip install the {{ cookiecutter.module_name }} package in the project venv
+* Run `upgrade_package.bat` to trigger `poetry install` and run a test function to see if it works
 
 ## Notes
 
@@ -54,6 +56,9 @@ uvx cookiecutter gh:scottchiunyc/cookiecutter-pypackage-cpp
     * Look into sphinx `literalinclude` and `sphinx-gallery`
     * Examples can be smoked-tested in CI (build and optionally run with a CMake toggle `BUILD_EXAMPLES`) to ensure docs stay accurate
 * pybind11 is currently fetched from the pybind11 repo on GitHub. It was added by vcpkg from the registry but the dependencies might fail to download if the user is behind a corporate corporate firewall. The fetch-from-repo trick works well with header-only libraries like pybin11 but for compiled libraries the setup will be more complicated
+* Previously, what `upgrade_package.bat` did was to pip uninstall and pip install the {{ cookiecutter.module_name }} package in the project venv. That way the installation is frozen and not in editable mode for Python
+* Previously, `build.py` only says to trigger `cmake --preset=vcpkg` to configure CMake, that way repeated `poetry install` will fail (without a clean rebuild with build folder deleted) because CMake caches Python path that points to a temporary Poetry build venv that no longer exists after the installation is done. Same issue for `cnb.bat`. The solution is to explicitly specify `Python_EXECUTABLE` and `Python3_EXECUTABLE` for CMake
 * TODO: pytest, jupyter notebook demo, sphinx docs, github actions
 * TODO: Is `.vscode/c_cpp_properties.json` needed in order for IntelliSense to work properly? That's not the case for dlc
 * TODO: After poetry upgrade, run `poetry config --migrate` to fix `pyproject.toml` for broken projects
+* TODO: Modify `build.py` and `cnb.bat`

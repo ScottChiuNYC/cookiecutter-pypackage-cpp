@@ -1,6 +1,6 @@
 # Cookiecutter PyPackage With C++ Component
 
-Poetry + pybind11 + CMake + vcpkg + GTest
+Poetry + pybind11 + CMake + vcpkg + GTest + pytest
 
 ## Usage
 

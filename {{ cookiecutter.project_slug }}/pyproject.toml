@@ -25,6 +25,8 @@ script = "build.py"
 [tool.poetry.dependencies]
 python = "{{ cookiecutter.python_version }}"
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.0"
 
 [build-system]
 requires = ["poetry-core", "cmake", "ninja"]

@@ -24,7 +24,7 @@ FetchContent_MakeAvailable(pybind11)
 # Easy
 set(PYBIND11_FINDPYTHON ON)
 # find_package(pybind11 CONFIG REQUIRED)
-pybind11_add_module({{ cookiecutter.module_name }}_core bindings/point_bindings.cpp)
+pybind11_add_module({{ cookiecutter.module_name }}_core bindings/hello_bindings.cpp)
 target_link_libraries({{ cookiecutter.module_name }}_core PRIVATE {{ cookiecutter.module_name }}_core_static)
 
 # # Advanced

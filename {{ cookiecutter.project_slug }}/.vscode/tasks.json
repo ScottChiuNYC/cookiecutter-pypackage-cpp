@@ -2,15 +2,25 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "CMake: configure (Windows)",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--preset",
+                "windows-vcpkg"
+            ],
+            "problemMatcher": ["$msCompile"]
+        },
+        {
             "label": "CMake: build (Debug)",
             "type": "shell",
             "command": "cmake",
             "args": [
                 "--build",
-                "${workspaceFolder}/build",
-                "--config",
-                "Debug"
+                "--preset",
+                "windows-debug"
             ],
+            "dependsOn": ["CMake: configure (Windows)"],
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -23,22 +33,23 @@
             "command": "cmake",
             "args": [
                 "--build",
-                "${workspaceFolder}/build",
-                "--config",
-                "Release"
+                "--preset",
+                "windows-release"
             ],
+            "dependsOn": ["CMake: configure (Windows)"],
             "group": "build",
             "problemMatcher": ["$msCompile"]
         },
         {
-            "label": "CMake: config and build",
+            "label": "CTest: run (Debug)",
             "type": "shell",
-            "command": "cmake",
+            "command": "ctest",
             "args": [
-                "--preset=vcpkg"
+                "--preset",
+                "windows-debug-tests"
             ],
-            "group": "build",
-            "dependsOn": ["CMake: build (Debug)"]
+            "dependsOn": ["CMake: build (Debug)"],
+            "problemMatcher": []
         }
     ]
 }

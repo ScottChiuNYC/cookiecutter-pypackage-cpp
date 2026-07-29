@@ -104,6 +104,32 @@ jobs:
       - name: Configure CMake
         run: cmake --preset "{% raw %}${{ matrix.configure_preset }}{% endraw %}"
 
+      - name: Verify pkgconf was neither installed nor acquired
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+
+          installed = sorted(Path("build").glob("*/vcpkg_installed/vcpkg/info/pkgconf_*"))
+          downloads = Path(os.environ["VCPKG_ROOT"]) / "downloads"
+          acquired = []
+          for directory in (downloads, downloads / "tools"):
+              if not directory.exists():
+                  continue
+              acquired.extend(
+                  path for path in directory.iterdir()
+                  if path.name.lower() == "pkgconf"
+                  or path.name.lower().startswith("pkgconf-")
+              )
+          acquired = sorted(acquired)
+
+          if installed or acquired:
+              raise SystemExit(
+                  f"pkgconf unexpectedly present; installed={installed}, acquired={acquired}"
+              )
+
+          print("Confirmed: custom gtest was configured without installing or acquiring pkgconf.")
+
       - name: Build C++ and pybind module
         run: cmake --build --preset "{% raw %}${{ matrix.build_preset }}{% endraw %}"
 

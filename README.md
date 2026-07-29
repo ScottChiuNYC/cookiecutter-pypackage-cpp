@@ -35,7 +35,9 @@ The default generated project requires:
 - Visual Studio 2022 on Windows;
 - Ninja and a C++17 compiler on Linux.
 
-The generated `vcpkg-configuration.json` pins the registry baseline. Both generated CI and this template's acceptance CI read that baseline directly before checking out vcpkg.
+The generated `vcpkg-configuration.json` uses Microsoft vcpkg as the default registry for general ports, while routing `gtest` to `ScottChiuNYC/vcpkg-registry`. The custom `gtest@1.17.0#3` port preserves the normal CMake targets but uses `vcpkg_fixup_pkgconfig(SKIP_CHECK)`, so vcpkg does not download or execute `pkgconf`.
+
+Both generated CI and this template's acceptance CI read the Microsoft baseline directly from `vcpkg-configuration.json` before checking out vcpkg. The custom registry is independently pinned to an immutable commit.
 
 ## Generated build commands
 
@@ -65,10 +67,11 @@ The pybind extension is written directly into the generated Python package direc
 `.github/workflows/template-acceptance.yml` generates a fresh sample project from the current cookiecutter on both Windows and Linux, then:
 
 1. verifies that the generated GitHub Actions workflow was rendered correctly;
-2. checks out the vcpkg baseline from the generated configuration;
-3. configures and builds the C++ core and pybind module;
-4. runs CTest;
-5. runs pytest.
+2. verifies that `gtest` is routed to the pinned custom registry;
+3. checks out the Microsoft vcpkg baseline from the generated configuration;
+4. configures the generated project and confirms that `pkgconf` was neither installed nor acquired;
+5. builds the C++ core and pybind module;
+6. runs CTest and pytest.
 
 This protects the template itself, rather than only testing one previously generated repository.
 
@@ -77,4 +80,5 @@ This protects the template itself, rather than only testing one previously gener
 - pybind11 is fetched from its GitHub repository through CMake `FetchContent`.
 - generated Windows helpers and VS Code files target the `windows-vcpkg` preset layout;
 - generated CI is path-filtered so documentation-only pull requests do not consume the Windows/Linux matrix;
-- when the vcpkg baseline changes, update only `vcpkg-configuration.json`; CI derives the checkout commit from it.
+- when the Microsoft vcpkg baseline changes, update `default-registry.baseline` in the template's `vcpkg-configuration.json`;
+- when the custom gtest port changes, publish and validate the registry first, then update its custom-registry baseline in the template.

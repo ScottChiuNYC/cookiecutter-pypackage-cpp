@@ -4,7 +4,7 @@ A cross-platform project template combining Poetry, pybind11, CMake, vcpkg, Goog
 
 Generated projects include:
 
-- a C++{{ cookiecutter.cpp_standard if cookiecutter is defined else "17" }} static core library;
+- a C++17 static core library by default;
 - a pybind11 Python extension;
 - Poetry packaging and Python tests;
 - vcpkg manifest dependencies and GoogleTest;

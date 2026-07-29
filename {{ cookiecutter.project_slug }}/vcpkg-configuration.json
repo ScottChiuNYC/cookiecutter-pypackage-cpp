@@ -6,6 +6,14 @@
   },
   "registries": [
     {
+      "kind": "git",
+      "repository": "https://github.com/ScottChiuNYC/vcpkg-registry",
+      "baseline": "9e60f2f4c449410bf3b8ccd8fa11b1f3c38cf0f0",
+      "packages": [
+        "gtest"
+      ]
+    },
+    {
       "kind": "artifact",
       "location": "https://github.com/microsoft/vcpkg-ce-catalog/archive/refs/heads/main.zip",
       "name": "microsoft"

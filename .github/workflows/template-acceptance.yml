@@ -71,8 +71,9 @@ jobs:
           assert "cookiecutter." not in workflow
           assert github_matrix_expression in workflow
           assert "python-version: '3.12'" in workflow
+          assert "Verify pkgconf was neither installed nor acquired" in workflow
 
-      - name: Read generated vcpkg baseline
+      - name: Verify generated vcpkg configuration
         id: vcpkg-baseline
         shell: python
         run: |
@@ -84,6 +85,21 @@ jobs:
               Path("ci-sample/vcpkg-configuration.json").read_text(encoding="utf-8")
           )
           baseline = configuration["default-registry"]["baseline"]
+          custom_registries = [
+              registry
+              for registry in configuration["registries"]
+              if registry.get("kind") == "git"
+              and registry.get("repository")
+              == "https://github.com/ScottChiuNYC/vcpkg-registry"
+          ]
+          assert custom_registries == [
+              {
+                  "kind": "git",
+                  "repository": "https://github.com/ScottChiuNYC/vcpkg-registry",
+                  "baseline": "9e60f2f4c449410bf3b8ccd8fa11b1f3c38cf0f0",
+                  "packages": ["gtest"],
+              }
+          ]
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
               output.write(f"sha={baseline}\n")
 
@@ -113,6 +129,33 @@ jobs:
       - name: Configure generated project
         working-directory: ci-sample
         run: cmake --preset "${{ matrix.configure_preset }}"
+
+      - name: Verify pkgconf was neither installed nor acquired
+        working-directory: ci-sample
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+
+          installed = sorted(Path("build").glob("*/vcpkg_installed/vcpkg/info/pkgconf_*"))
+          downloads = Path(os.environ["VCPKG_ROOT"]) / "downloads"
+          acquired = []
+          for directory in (downloads, downloads / "tools"):
+              if not directory.exists():
+                  continue
+              acquired.extend(
+                  path for path in directory.iterdir()
+                  if path.name.lower() == "pkgconf"
+                  or path.name.lower().startswith("pkgconf-")
+              )
+          acquired = sorted(acquired)
+
+          if installed or acquired:
+              raise SystemExit(
+                  f"pkgconf unexpectedly present; installed={installed}, acquired={acquired}"
+              )
+
+          print("Confirmed: generated project used custom gtest without pkgconf.")
 
       - name: Build generated C++ and pybind module
         working-directory: ci-sample

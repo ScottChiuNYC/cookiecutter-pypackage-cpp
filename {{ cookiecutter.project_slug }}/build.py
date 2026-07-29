@@ -1,45 +1,57 @@
-import subprocess, shutil, sys, os
+from __future__ import annotations
 
-def build():
-    """Build the C++ extension module."""
+import os
+import subprocess
+import sys
+
+
+def _default_presets() -> tuple[str, str]:
+    if sys.platform == "win32":
+        return "windows-vcpkg", "windows-release"
+    return "linux-vcpkg-release", "linux-release"
+
+
+def build() -> bool:
+    """Build the C++ extension module for the active platform."""
     print("Building C++ extension module...")
-    
-    try:
-        # Configure with CMake
-        python_exe = sys.executable
-        subprocess.check_call([
-            'cmake',
-            '--preset=vcpkg',
-            f'-DPython_EXECUTABLE={python_exe}',
-            f'-DPython3_EXECUTABLE={python_exe}'
-        ])
-        
-        # Build in Release mode
-        subprocess.check_call(['cmake', '--build', 'build', '--config', 'Release'])
-        
-        # Copy the built extension to the package directory
-        # Note: The exact filename may vary based on Python version and platform
-        build_dir = './build/cpp/Release'
-        target_dir = './src/{{ cookiecutter.module_name }}'
-        
-        # Find the .pyd or .so file
-        for file in os.listdir(build_dir):
-            if file.startswith('{{ cookiecutter.module_name }}_core') and (file.endswith('.pyd') or file.endswith('.so')):
-                src_file = os.path.join(build_dir, file)
-                dst_file = os.path.join(target_dir, '{{ cookiecutter.module_name }}_core.pyd' if file.endswith('.pyd') else '{{ cookiecutter.module_name }}_core.so')
-                print(f"Copying {src_file} to {dst_file}")
-                shutil.copyfile(src_file, dst_file)
-                break
-        else:
-            print("Warning: Could not find built extension module", file=sys.stderr)
-            
-        print("Build completed successfully!")
-        return True
-        
-    except subprocess.CalledProcessError as e:
-        print(f"Build failed: {e}", file=sys.stderr)
+
+    configure_preset, build_preset = _default_presets()
+    configure_preset = os.environ.get(
+        "{{ cookiecutter.module_name.upper() }}_CMAKE_CONFIGURE_PRESET",
+        configure_preset,
+    )
+    build_preset = os.environ.get(
+        "{{ cookiecutter.module_name.upper() }}_CMAKE_BUILD_PRESET",
+        build_preset,
+    )
+
+    if not os.environ.get("VCPKG_ROOT"):
+        print(
+            "Build failed: VCPKG_ROOT must point to a vcpkg checkout.",
+            file=sys.stderr,
+        )
         return False
 
-if __name__ == '__main__':
-    success = build()
-    sys.exit(0 if success else 1)
+    python_executable = str(sys.executable)
+
+    try:
+        subprocess.check_call(
+            [
+                "cmake",
+                "--preset",
+                configure_preset,
+                f"-DPython_EXECUTABLE:FILEPATH={python_executable}",
+                f"-DPython3_EXECUTABLE:FILEPATH={python_executable}",
+            ]
+        )
+        subprocess.check_call(["cmake", "--build", "--preset", build_preset])
+    except (OSError, subprocess.CalledProcessError) as error:
+        print(f"Build failed: {error}", file=sys.stderr)
+        return False
+
+    print("Build completed successfully!")
+    return True
+
+
+if __name__ == "__main__":
+    sys.exit(0 if build() else 1)

@@ -53,7 +53,7 @@ jobs:
 
       - name: Generate sample project
         run: >-
-          cookiecutter . --no-input
+          cookiecutter --no-input .
           project_name=ci_sample
           project_slug=ci-sample
           module_name=ci_sample
@@ -66,9 +66,10 @@ jobs:
           workflow = Path("ci-sample/.github/workflows/build-and-test.yml").read_text(
               encoding="utf-8"
           )
+          github_matrix_expression = "$" + "{{ matrix.os }}"
           assert "{%" not in workflow
           assert "cookiecutter." not in workflow
-          assert "${{ matrix.os }}" in workflow
+          assert github_matrix_expression in workflow
           assert "python-version: '3.12'" in workflow
 
       - name: Check out pinned vcpkg

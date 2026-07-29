@@ -72,11 +72,26 @@ jobs:
           assert github_matrix_expression in workflow
           assert "python-version: '3.12'" in workflow
 
+      - name: Read generated vcpkg baseline
+        id: vcpkg-baseline
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path
+
+          configuration = json.loads(
+              Path("ci-sample/vcpkg-configuration.json").read_text(encoding="utf-8")
+          )
+          baseline = configuration["default-registry"]["baseline"]
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"sha={baseline}\n")
+
       - name: Check out pinned vcpkg
         uses: actions/checkout@v4
         with:
           repository: microsoft/vcpkg
-          ref: 00807e89724847a866033a2f042c38fafae3c534
+          ref: ${{ steps.vcpkg-baseline.outputs.sha }}
           path: vcpkg
           fetch-depth: 1
           persist-credentials: false

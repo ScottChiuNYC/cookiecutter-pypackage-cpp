@@ -1,64 +1,80 @@
 # Cookiecutter PyPackage With C++ Component
 
-Poetry + pybind11 + CMake + vcpkg + GTest + pytest
+A cross-platform project template combining Poetry, pybind11, CMake, vcpkg, GoogleTest, and pytest.
+
+Generated projects include:
+
+- a C++17 static core library by default;
+- a pybind11 Python extension;
+- Poetry packaging and Python tests;
+- vcpkg manifest dependencies and GoogleTest;
+- CMake configure, build, and test presets for Windows and Linux;
+- a Windows/Linux GitHub Actions build-and-test matrix.
 
 ## Usage
 
-* pip install and call cookiecutter: 
-```
+```bash
 pip install cookiecutter
 cookiecutter gh:scottchiunyc/cookiecutter-pypackage-cpp
 ```
-* Or, if you already have `uv` installed: 
-```
+
+Or with `uv`:
+
+```bash
 uvx cookiecutter gh:scottchiunyc/cookiecutter-pypackage-cpp
 ```
 
-## vcpkg + GoogleTest
+## Toolchain
 
-* [One time initial vcpkg setup](https://learn.microsoft.com/en-us/vcpkg/get_started/get-started?pivots=shell-cmd)
-    * `git clone https://github.com/microsoft/vcpkg.git`
-    * `cd vcpkg && bootstrap-vcpkg.bat`
-    * `set "VCPKG_ROOT=C:\path\to\vcpkg"`
-    * `set PATH=%VCPKG_ROOT%;%PATH%`
-    * In project root `vcpkg new --application`
-        * In `vcpkg-configuration.json`, the `baseline` in `default-registry` is the HEAD commit of the vcpkg registry at the time running `vcpkg new --application`
-    * The `CMakePresets.json` in this guide has `"generator": "Ninja",` which should be replaced by the default generator in the current platform
-        * `cmake --help` to check
-* To configure cmake and build and run gtest: 
-    * Run `cnb` if not using VS Code,
-        * Comment out `cmake --preset=vcpkg` to skip repeated config step
-        * `cmake --preset=vcpkg` does what `cmake -S . -B build` does which is to configure cmake
-        * `cd build & ctest` also runs the test but I like gtest output format more
-        * CTest looks for `CTestTestfile.cmake` which is in `build`, as CTest is included and enabled in project root's `CMakeLists.txt`
-    * `F5` if using VS Code
-        * In `.vscode/launch.json`, use `"preLaunchTask": "CMake: build"` instead of `"preLaunchTask": "CMake: config and build"` to skip repeated config step
-    * When to reconfigured: 
-        * New cpp/h files added
-        * `build` folder deleted, clean rebuild
-* `vcpkg add port fmt` to add the `fmt` library to C++ dependencies
+The default generated project requires:
 
-## Python Development
+- Python 3.12 or later;
+- CMake 3.23 or later;
+- Poetry;
+- a vcpkg checkout referenced by `VCPKG_ROOT`;
+- Visual Studio 2022 on Windows;
+- Ninja and a C++17 compiler on Linux.
 
-* `poetry shell` to create/activate venv for the project
-    * This requires `poetry` and `poetry-plugin-shell` pip installed in the system
-* `poetry install` to install packages as specified in `pyproject.toml`
-    * `poetry install` triggers `build.py` too and the project itself will be installed in editable mode which means any Python code changes are reflected immediately
-    * But if any C++ code changes, `poetry install` has to be triggered again so that the changes are reflected
-* `poetry add numpy` to add `numpy` to Python dependencies
-* `poetry build` to build wheel
-* Run `upgrade_package.bat` to trigger `poetry install` and run a test function to see if it works
+The generated `vcpkg-configuration.json` pins the registry baseline. Both generated CI and this template's acceptance CI read that baseline directly before checking out vcpkg.
+
+## Generated build commands
+
+### Windows
+
+```powershell
+cmake --preset windows-vcpkg
+cmake --build --preset windows-release
+ctest --preset windows-release-tests
+$env:PYTHONPATH = "$PWD/src"
+poetry run pytest tests/python
+```
+
+### Linux
+
+```bash
+cmake --preset linux-vcpkg-release
+cmake --build --preset linux-release
+ctest --preset linux-release-tests
+PYTHONPATH="$PWD/src" poetry run pytest tests/python
+```
+
+The pybind extension is written directly into the generated Python package directory on both platforms. The Poetry build hook selects the appropriate platform presets and no longer depends on Visual Studio-specific output paths.
+
+## Template acceptance testing
+
+`.github/workflows/template-acceptance.yml` generates a fresh sample project from the current cookiecutter on both Windows and Linux, then:
+
+1. verifies that the generated GitHub Actions workflow was rendered correctly;
+2. checks out the vcpkg baseline from the generated configuration;
+3. configures and builds the C++ core and pybind module;
+4. runs CTest;
+5. runs pytest.
+
+This protects the template itself, rather than only testing one previously generated repository.
 
 ## Notes
 
-* Currently this project has an examples folder compiled but the executable is not run by `cnb.bat` nor `.vscode/launch.json`
-* AI recommends to keep both examples and (not yet created) docs folders and have docs reference examples so that docs is synced
-    * Look into sphinx `literalinclude` and `sphinx-gallery`
-    * Examples can be smoked-tested in CI (build and optionally run with a CMake toggle `BUILD_EXAMPLES`) to ensure docs stay accurate
-* pybind11 is currently fetched from the pybind11 repo on GitHub. It was added by vcpkg from the registry but the dependencies might fail to download if the user is behind a corporate corporate firewall. The fetch-from-repo trick works well with header-only libraries like pybin11 but for compiled libraries the setup will be more complicated
-* Previously, what `upgrade_package.bat` did was to pip uninstall and pip install the {{ cookiecutter.module_name }} package in the project venv. That way the installation is frozen and not in editable mode for Python
-* Previously, `build.py` only says to trigger `cmake --preset=vcpkg` to configure CMake, that way repeated `poetry install` will fail (without a clean rebuild with build folder deleted) because CMake caches Python path that points to a temporary Poetry build venv that no longer exists after the installation is done. Same issue for `cnb.bat`. The solution is to explicitly specify `Python_EXECUTABLE` and `Python3_EXECUTABLE` for CMake
-* TODO: pytest, jupyter notebook demo, sphinx docs, github actions
-* TODO: Is `.vscode/c_cpp_properties.json` needed in order for IntelliSense to work properly? That's not the case for dlc
-* TODO: After poetry upgrade, run `poetry config --migrate` to fix `pyproject.toml` for broken projects
-* TODO: Modify `build.py` and `cnb.bat`
+- pybind11 is fetched from its GitHub repository through CMake `FetchContent`.
+- generated Windows helpers and VS Code files target the `windows-vcpkg` preset layout;
+- generated CI is path-filtered so documentation-only pull requests do not consume the Windows/Linux matrix;
+- when the vcpkg baseline changes, update only `vcpkg-configuration.json`; CI derives the checkout commit from it.

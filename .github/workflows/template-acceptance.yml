@@ -58,12 +58,16 @@ jobs:
           project_slug=ci-sample
           module_name=ci_sample
 
-      - name: Verify rendered workflow
+      - name: Verify rendered workflow and local overlay
+        id: vcpkg-baseline
         shell: python
         run: |
+          import json
+          import os
           from pathlib import Path
 
-          workflow = Path("ci-sample/.github/workflows/build-and-test.yml").read_text(
+          project = Path("ci-sample")
+          workflow = (project / ".github/workflows/build-and-test.yml").read_text(
               encoding="utf-8"
           )
           github_matrix_expression = "$" + "{{ matrix.os }}"
@@ -72,34 +76,33 @@ jobs:
           assert github_matrix_expression in workflow
           assert "python-version: '3.12'" in workflow
           assert "Verify pkgconf was neither installed nor acquired" in workflow
+          assert "vcpkg-ports/**" in workflow
 
-      - name: Verify generated vcpkg configuration
-        id: vcpkg-baseline
-        shell: python
-        run: |
-          import json
-          import os
-          from pathlib import Path
-
-          configuration = json.loads(
-              Path("ci-sample/vcpkg-configuration.json").read_text(encoding="utf-8")
+          configuration_path = project / "vcpkg-configuration.json"
+          configuration_text = configuration_path.read_text(encoding="utf-8")
+          configuration = json.loads(configuration_text)
+          assert configuration["default-registry"] == {
+              "kind": "git",
+              "baseline": "00807e89724847a866033a2f042c38fafae3c534",
+              "repository": "https://github.com/microsoft/vcpkg",
+          }
+          assert configuration["overlay-ports"] == ["vcpkg-ports"]
+          assert "ScottChiuNYC/vcpkg-registry" not in configuration_text
+          assert all(
+              registry.get("kind") != "git"
+              for registry in configuration.get("registries", [])
           )
+
+          overlay = project / "vcpkg-ports/gtest"
+          manifest = json.loads((overlay / "vcpkg.json").read_text(encoding="utf-8"))
+          portfile = (overlay / "portfile.cmake").read_text(encoding="utf-8")
+          assert manifest["name"] == "gtest"
+          assert manifest["version-semver"] == "1.17.0"
+          assert manifest["port-version"] == 3
+          assert "REPO google/googletest" in portfile
+          assert "vcpkg_fixup_pkgconfig(SKIP_CHECK)" in portfile
+
           baseline = configuration["default-registry"]["baseline"]
-          custom_registries = [
-              registry
-              for registry in configuration["registries"]
-              if registry.get("kind") == "git"
-              and registry.get("repository")
-              == "https://github.com/ScottChiuNYC/vcpkg-registry"
-          ]
-          assert custom_registries == [
-              {
-                  "kind": "git",
-                  "repository": "https://github.com/ScottChiuNYC/vcpkg-registry",
-                  "baseline": "9e60f2f4c449410bf3b8ccd8fa11b1f3c38cf0f0",
-                  "packages": ["gtest"],
-              }
-          ]
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
               output.write(f"sha={baseline}\n")
 
@@ -155,7 +158,7 @@ jobs:
                   f"pkgconf unexpectedly present; installed={installed}, acquired={acquired}"
               )
 
-          print("Confirmed: generated project used custom gtest without pkgconf.")
+          print("Confirmed: generated project used the local gtest overlay without pkgconf.")
 
       - name: Build generated C++ and pybind module
         working-directory: ci-sample

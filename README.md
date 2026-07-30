@@ -7,7 +7,7 @@ Generated projects include:
 - a C++17 static core library by default;
 - a pybind11 Python extension;
 - Poetry packaging and Python tests;
-- vcpkg manifest dependencies and GoogleTest;
+- vcpkg manifest dependencies and a repository-local GoogleTest overlay port;
 - CMake configure, build, and test presets for Windows and Linux;
 - a Windows/Linux GitHub Actions build-and-test matrix.
 
@@ -35,9 +35,9 @@ The default generated project requires:
 - Visual Studio 2022 on Windows;
 - Ninja and a C++17 compiler on Linux.
 
-The generated `vcpkg-configuration.json` uses Microsoft vcpkg as the default registry for general ports, while routing `gtest` to `ScottChiuNYC/vcpkg-registry`. The custom `gtest@1.17.0#3` port preserves the normal CMake targets but uses `vcpkg_fixup_pkgconfig(SKIP_CHECK)`, so vcpkg does not download or execute `pkgconf`.
+The generated `vcpkg-configuration.json` uses Microsoft vcpkg as the only package registry and declares `vcpkg-ports` as a local overlay. The generated `vcpkg-ports/gtest` directory contains `gtest@1.17.0#3`, preserving the normal CMake targets while using `vcpkg_fixup_pkgconfig(SKIP_CHECK)` so vcpkg does not download or execute `pkgconf`.
 
-Both generated CI and this template's acceptance CI read the Microsoft baseline directly from `vcpkg-configuration.json` before checking out vcpkg. The custom registry is independently pinned to an immutable commit.
+The overlay is resolved before registry lookup. Other dependencies continue to come from the pinned Microsoft vcpkg baseline. No personal registry URL is present in generated projects.
 
 ## Generated build commands
 
@@ -67,7 +67,7 @@ The pybind extension is written directly into the generated Python package direc
 `.github/workflows/template-acceptance.yml` generates a fresh sample project from the current cookiecutter on both Windows and Linux, then:
 
 1. verifies that the generated GitHub Actions workflow was rendered correctly;
-2. verifies that `gtest` is routed to the pinned custom registry;
+2. verifies the local `vcpkg-ports/gtest` overlay and confirms that no personal registry is configured;
 3. checks out the Microsoft vcpkg baseline from the generated configuration;
 4. configures the generated project and confirms that `pkgconf` was neither installed nor acquired;
 5. builds the C++ core and pybind module;
@@ -77,8 +77,8 @@ This protects the template itself, rather than only testing one previously gener
 
 ## Notes
 
-- pybind11 is fetched from its GitHub repository through CMake `FetchContent`.
+- pybind11 remains fetched from its GitHub repository through CMake `FetchContent`;
 - generated Windows helpers and VS Code files target the `windows-vcpkg` preset layout;
 - generated CI is path-filtered so documentation-only pull requests do not consume the Windows/Linux matrix;
 - when the Microsoft vcpkg baseline changes, update `default-registry.baseline` in the template's `vcpkg-configuration.json`;
-- when the custom gtest port changes, publish and validate the registry first, then update its custom-registry baseline in the template.
+- when the custom gtest recipe changes, update `vcpkg-ports/gtest` in this template and rerun the Windows/Linux acceptance workflow.

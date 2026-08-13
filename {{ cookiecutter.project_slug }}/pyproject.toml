@@ -6,10 +6,19 @@ authors = ["Your Name <you@example.com>"]
 readme = "README.md"
 
 include = [
-    # Source files for C extensions must be included in the source distribution.
+    # Native build inputs required when rebuilding from the source distribution.
+    { path = "CMakeLists.txt", format = "sdist" },
+    { path = "CMakePresets.json", format = "sdist" },
+    { path = "build.py", format = "sdist" },
+    { path = "vcpkg.json", format = "sdist" },
+    { path = "vcpkg-configuration.json", format = "sdist" },
+    { path = "vcpkg-ports/gtest/*", format = "sdist" },
+    { path = "cpp/CMakeLists.txt", format = "sdist" },
     { path = "cpp/bindings/*.*", format = "sdist" },
     { path = "cpp/include/{{ cookiecutter.module_name }}_core/*.*", format = "sdist" },
     { path = "cpp/src/*.*", format = "sdist" },
+    { path = "examples/cpp/*.*", format = "sdist" },
+    { path = "tests/cpp/*.*", format = "sdist" },
     # C extensions must be included in the wheel distribution.
     { path = "src/{{ cookiecutter.module_name }}/*.pyd", format = "wheel" },
     { path = "src/{{ cookiecutter.module_name }}/*.so", format = "wheel" },

@@ -2,6 +2,12 @@
 
 Poetry + pybind11 + CMake + vcpkg + GoogleTest + pytest.
 
+## Development contract
+
+Before adding implementation, dependencies, bindings, tests, or build-system changes, read [`docs/development/PROJECT_SKELETON_CONTRACT.md`](docs/development/PROJECT_SKELETON_CONTRACT.md). It is the normative guide to this project's C++/Python source layout, dependency wiring, packaging, build, test, and CI extension points.
+
+Domain implementation documents should describe what to implement; the Project Skeleton Contract describes how that implementation fits into this repository.
+
 ## Requirements
 
 - Python {{ cookiecutter.python_version }}

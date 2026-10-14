@@ -41,24 +41,24 @@ def tool_environment(project, tools=None):
     ninja = shutil.which("ninja", path=env["PATH"])
     if not ninja or not Path(env["VCPKG_ROOT"], "scripts/buildsystems/vcpkg.cmake").is_file():
         raise SystemExit("Run python scripts/bootstrap.py first (Ninja and pinned vcpkg are required).")
-    options = []
-    if sys.platform == "linux":
-        # Only tool paths change; keep the official x64-linux ABI settings and
-        # compiler tracking. Parent -D options alone do not reach vcpkg's CMake.
-        triplets = tools / "triplets"
-        triplets.mkdir(parents=True, exist_ok=True)
-        executable = Path(ninja).resolve().as_posix()
-        env["NINJA"] = executable
-        env["VCPKG_KEEP_ENV_VARS"] = env.get("VCPKG_KEEP_ENV_VARS", "") + ";NINJA"
-        (triplets / "x64-linux.cmake").write_text(
-            'include("$ENV{VCPKG_ROOT}/triplets/x64-linux.cmake")\n'
-            'set(NINJA "$ENV{NINJA}")\n'
-            'list(APPEND VCPKG_CMAKE_CONFIGURE_OPTIONS "-DCMAKE_MAKE_PROGRAM:FILEPATH=${NINJA}")\n',
-            encoding="utf-8",
-        )
-        options = [f"-DCMAKE_MAKE_PROGRAM:FILEPATH={executable}", f"-DVCPKG_OVERLAY_TRIPLETS:STRING={triplets.as_posix()}"]
-    elif sys.platform != "win32":
+    if sys.platform not in ("linux", "win32"):
         raise SystemExit("Supported presets are Linux x64 and Windows x64 with Visual Studio 2022.")
+    # Both platforms use Ninja inside vcpkg, even when the parent uses MSBuild.
+    executable = Path(ninja).resolve().as_posix()
+    env["NINJA"] = executable
+    env["VCPKG_KEEP_ENV_VARS"] = ";".join(filter(None, (env.get("VCPKG_KEEP_ENV_VARS", ""), "NINJA")))
+    triplets = tools / "triplets"
+    triplets.mkdir(parents=True, exist_ok=True)
+    triplet = "x64-windows" if sys.platform == "win32" else "x64-linux"
+    content = f'include("${{VCPKG_ROOT_DIR}}/triplets/{triplet}.cmake")\nset(NINJA "$ENV{{NINJA}}")\n'
+    if sys.platform == "linux":
+        content += 'list(APPEND VCPKG_CMAKE_CONFIGURE_OPTIONS "-DCMAKE_MAKE_PROGRAM:FILEPATH=${NINJA}")\n'
+    target = triplets / (triplet + ".cmake")
+    if not target.exists() or target.read_text(encoding="utf-8") != content:
+        target.write_text(content, encoding="utf-8")
+    options = [f"-DVCPKG_OVERLAY_TRIPLETS:STRING={triplets.as_posix()}"]
+    if sys.platform == "linux":
+        options.insert(0, f"-DCMAKE_MAKE_PROGRAM:FILEPATH={executable}")
     return tool_python, env, options
 
 

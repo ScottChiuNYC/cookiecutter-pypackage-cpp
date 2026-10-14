@@ -50,7 +50,7 @@ No Docker, services, shell activation, personal vcpkg registry or custom infrast
 
 ## Generated C++ packages
 
-Generated projects now install public headers, compiled libraries, and relocatable CMake config/version/target files. With default answers, the port is `my-project-core`, the CMake package is `my_project_core`, and the consumer target is `my_project_core::core`. `vcpkg_port_name` is a separate lowercase/hyphenated Copier answer; it does not rename the CMake API or the root dependency manifest. `version` supplies the CMake package version (numeric `major.minor.patch`).
+Generated projects now install public headers, compiled libraries, and relocatable CMake config/version/target files. With default answers, the port is `my-project-core`, the CMake package is `my_project_core`, and the consumer target is `my_project_core::core`. `vcpkg_port_name` is a separate lowercase/hyphenated Copier answer; it does not rename the CMake API or the root dependency manifest. `version` retains the Poetry/port version; its numeric release component supplies the CMake package version (for example, `1.2.3rc1` → `1.2.3`). The custom sample validates this prerelease path.
 
 The generated README contains exact Linux/PowerShell commands for installing the local port and consuming it in an independent project. The port remains inside the generated source checkout; it builds that working tree, with no registry, upload, release workflow, Python tooling, or test dependency required by the C++ consumer. Run `python scripts/validate_vcpkg.py` after bootstrap to exercise just packaging; the normal generated validation invokes it automatically.
 

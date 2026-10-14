@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION {{ cmake_min_version }})
-project({{ module_name }} VERSION {{ version }} LANGUAGES CXX)
+project({{ module_name }} VERSION {{ version | regex_search("[0-9]+(\\.[0-9]+){0,3}") }} LANGUAGES CXX)
 
 include(CTest)
 option(BUILD_PYTHON_BINDINGS "Build the pybind11 extension" ON)

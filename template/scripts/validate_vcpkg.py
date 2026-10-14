@@ -17,15 +17,17 @@ def validate_vcpkg(project, env):
     baseline = json.loads((project / "vcpkg-configuration.json").read_text())["default-registry"]
     windows = sys.platform == "win32"
     base_triplet = "x64-windows" if windows else "x64-linux"
-    linkages = ("static",) if python_package else ("static", "dynamic")
+    linkages = (("dynamic",) if windows else ("static",)) if python_package else ("static", "dynamic")
     with tempfile.TemporaryDirectory(prefix="vcpkg-consumer-") as directory:
-        work = Path(directory)
+        # Resolve Windows 8.3 aliases before comparing installed CMake paths.
+        work = Path(directory).resolve()
         triplets = work / "triplets"
         triplets.mkdir()
         # Host helpers need the same pinned Ninja setup as the existing presets.
         shutil.copy2(Path(env["PROJECT_DEV_TOOLS"]) / "triplets" / f"{base_triplet}.cmake",
                      triplets / f"{base_triplet}.cmake")
         for linkage in linkages:
+            expected_linkage = "static" if python_package else linkage
             triplet = f"x64-packaging-{linkage}"
             content = (
                 f'include("${{VCPKG_ROOT_DIR}}/triplets/{base_triplet}.cmake")\n'
@@ -74,7 +76,7 @@ def validate_vcpkg(project, env):
                          f"-DVCPKG_INSTALLED_DIR={relocated}", f"-DVCPKG_TARGET_TRIPLET={triplet}",
                          "-DVCPKG_MANIFEST_INSTALL=OFF", "-DCMAKE_FIND_USE_PACKAGE_REGISTRY=OFF",
                          "-DCMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY=OFF",
-                         f"-DEXPECTED_PREFIX={prefix.as_posix()}", f"-DEXPECTED_LINKAGE={linkage}"],
+                         f"-DEXPECTED_PREFIX={prefix.as_posix()}", f"-DEXPECTED_LINKAGE={expected_linkage}"],
                         cwd=consumer, env=env)
                     run(["cmake", "--build", build, "--config", configuration], cwd=consumer, env=env)
                     runtime_env = env.copy()
@@ -84,7 +86,7 @@ def validate_vcpkg(project, env):
                         cwd=consumer, env=runtime_env)
             finally:
                 hidden.rename(headers)
-            print(f"vcpkg consumer passed: {linkage}, Release + Debug, relocated install, source headers hidden.", flush=True)
+            print(f"vcpkg consumer passed: {linkage} triplet -> {expected_linkage} library, Release + Debug, relocated install, source headers hidden.", flush=True)
         downloads = vcpkg_root / "downloads"
         assert not [p for d in (downloads, downloads / "tools") if d.exists() for p in d.iterdir()
                     if p.name.lower() == "pkgconf" or p.name.lower().startswith("pkgconf-")]

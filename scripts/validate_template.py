@@ -58,7 +58,7 @@ def main():
     data = ["-d", "project_name=CI Sample", "-d", "project_slug=ci_sample"]
     if python_package:
         data += ["-d", "module_name=ci_sample"]
-    custom_data = [*data, "-d", "vcpkg_port_name=ci-packaged-library"]
+    custom_data = [*data, "-d", "vcpkg_port_name=ci-packaged-library", "-d", "version=1.2.3rc1"]
     run([*copier, "copy", "--defaults", "--vcs-ref", "v1.0.0", *custom_data, fixture, project], env=env)
     import yaml
     answers = yaml.safe_load((project / ".copier-answers.yml").read_text(encoding="utf-8"))

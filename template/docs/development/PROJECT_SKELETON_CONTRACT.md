@@ -167,7 +167,7 @@ A packaging change is complete only when the intended clean artifact can import 
 
 ### 7.1 Independent C++ package
 
-The static core also installs as a CMake package `<module>_core` with target `<module>_core::core`. `BUILD_PYTHON_BINDINGS=OFF` excludes Python discovery, pybind11 FetchContent and the extension. `BUILD_EXAMPLES=OFF` and `BUILD_TESTING=OFF` exclude development targets for packaging. Default presets keep those existing targets enabled.
+The CMake package version uses the numeric release component of the Poetry version; prerelease/build metadata remains in Poetry and the port manifest. The static core also installs as a CMake package `<module>_core` with target `<module>_core::core`. `BUILD_PYTHON_BINDINGS=OFF` excludes Python discovery, pybind11 FetchContent and the extension. `BUILD_EXAMPLES=OFF` and `BUILD_TESTING=OFF` exclude development targets for packaging. Default presets keep those existing targets enabled.
 
 CMake installs the core library, public headers, and config/version/export files using separate build/install include paths. `cmake/LibraryConfig.cmake.in` is a native configure input and must be included in the sdist. The local library overlay under `vcpkg-ports/` has its own port manifest, separate from the root development dependency manifest. It stays inside the source checkout and always packages the core statically, with CRT linkage determined by the triplet.
 

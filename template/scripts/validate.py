@@ -44,7 +44,8 @@ def main():
         if not python_package:
             raise SystemExit("--wheel applies to the Python + C++ template only.")
         # The default build also rebuilds the wheel from the unpacked sdist.
-        run([py, "-m", "build", "--no-isolation"], cwd=project, env=env)
+        # -I prevents the project build.py hook from shadowing the build frontend.
+        run([py, "-I", "-m", "build", "--no-isolation", project], cwd=project.parent, env=env)
         wheels = list((project / "dist").glob("*.whl"))
         assert len(wheels) == 1 and not wheels[0].name.endswith("none-any.whl"), wheels
         name = tomllib.loads((project / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["poetry"]["name"]

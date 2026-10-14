@@ -25,7 +25,7 @@ def main():
         run([py, __file__, *sys.argv[1:]], env=env)
         return
     temporary = tempfile.TemporaryDirectory(prefix="template-validation-") if args.work_dir is None else None
-    work = Path(temporary.name) if temporary else args.work_dir.resolve()
+    work = (Path(temporary.name) if temporary else args.work_dir).resolve()
     work.mkdir(parents=True, exist_ok=True)
     if any(work.iterdir()):
         raise SystemExit("--work-dir must be empty; validation will not overwrite existing projects.")

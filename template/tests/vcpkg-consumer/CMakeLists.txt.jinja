@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 project(vcpkg_consumer LANGUAGES CXX)
 file(REAL_PATH "${EXPECTED_PREFIX}" EXPECTED_PREFIX)
 
-find_package({{ module_name }}_core {{ version | regex_search("[0-9]+(\\.[0-9]+){0,3}") }} EXACT CONFIG REQUIRED)
+find_package({{ module_name }}_core {{ version.split('!')[-1] | regex_search("[0-9]+(\\.[0-9]+){0,3}") }} EXACT CONFIG REQUIRED)
 set(library_target {{ module_name }}_core::core)
 get_target_property(library_type ${library_target} TYPE)
 if(EXPECTED_LINKAGE STREQUAL "static" AND NOT library_type STREQUAL "STATIC_LIBRARY")

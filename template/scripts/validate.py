@@ -9,6 +9,7 @@ import venv
 import tomllib
 
 from bootstrap import python_in, run, tool_environment
+from validate_vcpkg import validate_vcpkg
 
 
 def main():
@@ -56,6 +57,7 @@ def main():
             run([wheel_py, "-m", "pip", "install", "--no-deps", wheels[0]], cwd=directory, env=env)
             code = f"import {name} as package; assert package.hello() == 'Hello, World!'; print(package.__file__)"
             run([wheel_py, "-I", "-c", code], cwd=directory, env=env)
+    validate_vcpkg(project, env)
     print("Project validation passed.")
 
 

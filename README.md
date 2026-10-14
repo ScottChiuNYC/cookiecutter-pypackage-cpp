@@ -1,12 +1,12 @@
 # Copier Python Package with C++ Component
 
-Poetry packaging, a C++17 static core and a pybind11 extension. This repository is migrated in place from Cookiecutter; its GitHub name stays the same.
+Poetry packaging, a C++17 static core and a pybind11 extension. This repository is migrated in place from Cookiecutter; it now uses the `copier-` repository name.
 
 ## Generate and update a project
 
 ```bash
 pip install copier==9.19.1
-copier copy gh:ScottChiuNYC/cookiecutter-pypackage-cpp my-project
+copier copy gh:ScottChiuNYC/copier-pypackage-cpp my-project
 cd my-project
 git init
 git add .
@@ -47,3 +47,13 @@ The validation script exercises default/custom Copier copy, real `v1.0.0` → `v
 Generated projects build automatically on push and pull request, with a manual workflow trigger also available. `template/.github/workflows/build-and-test.yml.jinja` renders the project's selected Python version and preserves GitHub Actions expressions. Bootstrap and validation scripts are ordinary Python files under `scripts/`; `.jinja` is used only for project-specific substitution. Template validation checks both workflows' triggers, platform matrix and script entry points before executing the sample build/tests.
 
 No Docker, services, shell activation, personal vcpkg registry or custom infrastructure is needed. The first run downloads tools and compiles dependencies; later runs reuse local caches. Template acceptance on push allows Windows/Linux checks to finish before opening the migration PR.
+
+## Generated C++ packages
+
+Generated projects now install public headers, compiled libraries, and relocatable CMake config/version/target files. With default answers, the port is `my-project-core`, the CMake package is `my_project_core`, and the consumer target is `my_project_core::core`. `vcpkg_port_name` is a separate lowercase/hyphenated Copier answer; it does not rename the CMake API or the root dependency manifest. `version` supplies the CMake package version (numeric `major.minor.patch`).
+
+The generated README contains exact Linux/PowerShell commands for installing the local port and consuming it in an independent project. The port remains inside the generated source checkout; it builds that working tree, with no registry, upload, release workflow, Python tooling, or test dependency required by the C++ consumer. Run `python scripts/validate_vcpkg.py` after bootstrap to exercise just packaging; the normal generated validation invokes it automatically.
+
+Packaging acceptance installs into a fresh consumer manifest, disables binary caching for mutable local sources, relocates the installed prefix, hides source headers, checks imported include/library/config paths, and compiles/links/runs both Release and Debug consumers. The core remains static (including dynamic triplets), and its port disables pybind11, Python discovery, examples and tests. Poetry/CTest/pytest, sdist-to-wheel rebuilding and clean wheel import remain part of full acceptance. PR #10's executable resolution and unactivated-runner regression are retained.
+
+The existing tagged `v1.0.0` → `v1.1.0` fixture remains. A separate fixture generates from the pre-packaging master commit, updates through isolated `v2.0.0` → `v2.1.0` tags, retains user source edits/files and existing answers, then runs the installed consumer. Acceptance checkouts include Git history for this fixture. No real downstream repository is updated.

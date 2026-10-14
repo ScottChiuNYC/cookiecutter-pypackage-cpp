@@ -1,17 +1,42 @@
 cmake_minimum_required(VERSION {{ cmake_min_version }})
-project({{ module_name }}_core LANGUAGES CXX)
+project({{ module_name }}_core VERSION {{ version }} LANGUAGES CXX)
+
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
 
 file(GLOB CORE_SOURCES CONFIGURE_DEPENDS src/*.cpp)
 add_library({{ module_name }}_core_static STATIC ${CORE_SOURCES})
 set_target_properties(
     {{ module_name }}_core_static
-    PROPERTIES POSITION_INDEPENDENT_CODE ON
+    PROPERTIES POSITION_INDEPENDENT_CODE ON EXPORT_NAME core
 )
 
 target_include_directories(
     {{ module_name }}_core_static
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
+target_compile_features({{ module_name }}_core_static PUBLIC cxx_std_{{ cpp_standard }})
+
+install(TARGETS {{ module_name }}_core_static EXPORT {{ module_name }}_coreTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+set(package_dir "${CMAKE_INSTALL_LIBDIR}/cmake/{{ module_name }}_core")
+configure_package_config_file("${CMAKE_SOURCE_DIR}/cmake/LibraryConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/{{ module_name }}_coreConfig.cmake"
+    INSTALL_DESTINATION "${package_dir}"
+)
+write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/{{ module_name }}_coreConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION} COMPATIBILITY SameMajorVersion
+)
+install(EXPORT {{ module_name }}_coreTargets NAMESPACE {{ module_name }}_core:: DESTINATION "${package_dir}")
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/{{ module_name }}_coreConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/{{ module_name }}_coreConfigVersion.cmake" DESTINATION "${package_dir}"
+)
+
+if(BUILD_PYTHON_BINDINGS)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -45,3 +70,4 @@ foreach(config Debug Release RelWithDebInfo MinSizeRel)
             RUNTIME_OUTPUT_DIRECTORY_${config_upper} "${PYTHON_PACKAGE_DIR}"
     )
 endforeach()
+endif()

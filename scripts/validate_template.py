@@ -2,6 +2,9 @@
 from pathlib import Path
 import argparse
 import json
+import io
+import subprocess
+import tarfile
 import os
 import shutil
 import sys
@@ -55,10 +58,13 @@ def main():
     data = ["-d", "project_name=CI Sample", "-d", "project_slug=ci_sample"]
     if python_package:
         data += ["-d", "module_name=ci_sample"]
-    run([*copier, "copy", "--defaults", "--vcs-ref", "v1.0.0", *data, fixture, project], env=env)
+    custom_data = [*data, "-d", "vcpkg_port_name=ci-packaged-library"]
+    run([*copier, "copy", "--defaults", "--vcs-ref", "v1.0.0", *custom_data, fixture, project], env=env)
     import yaml
     answers = yaml.safe_load((project / ".copier-answers.yml").read_text(encoding="utf-8"))
     assert answers["_commit"] == "v1.0.0"
+    assert answers["vcpkg_port_name"] == "ci-packaged-library"
+    assert (project / "vcpkg-ports/ci-packaged-library/portfile.cmake").exists()
     workflow = (project / ".github/workflows/build-and-test.yml").read_text(encoding="utf-8")
     assert "${{ matrix.os }}" in workflow and "{%" not in workflow and "cookiecutter." not in workflow
     acceptance = (ROOT / ".github/workflows/template-acceptance.yml").read_text(encoding="utf-8")
@@ -95,7 +101,6 @@ def main():
     assert not list(project.rglob("*.rej"))
     # Invalid identifiers must fail at question validation, before writing a project.
     bad = ["-d", "module_name=not-valid"] if python_package else ["-d", "project_slug=not-valid"]
-    import subprocess
     result = subprocess.run([str(x) for x in [*copier, "copy", "--defaults", *bad, fixture, work / "invalid"]], env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     assert result.returncode != 0 and "Use a valid identifier." in result.stdout, result.stdout
     print(f"Identifier rejection passed (expected exit {result.returncode}).", flush=True)
@@ -107,6 +112,48 @@ def main():
     project_env.pop("PROJECT_DEV_TOOLS", None)
     run([runner, project / "scripts/bootstrap.py", "--vcpkg-root", env["VCPKG_ROOT"]], cwd=project, env=project_env)
     run([runner, project / "scripts/validate.py", *(["--wheel"] if python_package else [])], cwd=project, env=project_env)
+    # Upgrade a real pre-packaging master revision using isolated Git tags.
+    old = work / "previous-template"
+    old.mkdir()
+    archive = subprocess.check_output(["git", "archive", "4eec4ac0ffb8796d7e710a91b81e04dac79def60", "copier.yml", "template"], cwd=ROOT)
+    with tarfile.open(fileobj=io.BytesIO(archive)) as files:
+        files.extractall(old, filter="data")
+    run(["git", "init"], cwd=old)
+    for key, value in (("user.name", "Template Validation"), ("user.email", "template@example.com"), ("core.autocrlf", "false")):
+        run(["git", "config", key, value], cwd=old)
+    run(["git", "add", "."], cwd=old)
+    run(["git", "commit", "-m", "Previous master without packaging"], cwd=old)
+    run(["git", "tag", "v2.0.0"], cwd=old)
+    upgraded = work / "upgraded"
+    run([*copier, "copy", "--defaults", "--vcs-ref", "v2.0.0", *data, old, upgraded], env=env)
+    assert not (upgraded / "cmake/LibraryConfig.cmake.in").exists()
+    user_file = upgraded / "user-notes.txt"
+    user_file.write_text("Keep unrelated user work.\n", encoding="utf-8")
+    source = upgraded / ("cpp/src/hello.cpp" if python_package else "src/example.cpp")
+    source.write_text(source.read_text(encoding="utf-8") + "\n// Retain this user source edit.\n", encoding="utf-8")
+    before = yaml.safe_load((upgraded / ".copier-answers.yml").read_text(encoding="utf-8"))
+    run(["git", "init"], cwd=upgraded)
+    for key, value in (("user.name", "Template Validation"), ("user.email", "template@example.com"), ("core.autocrlf", "false")):
+        run(["git", "config", key, value], cwd=upgraded)
+    run(["git", "add", "."], cwd=upgraded)
+    run(["git", "commit", "-m", "Previous project with unrelated user edits"], cwd=upgraded)
+    shutil.rmtree(old / "template")
+    shutil.copytree(ROOT / "template", old / "template", ignore=shutil.ignore_patterns(".dev-tools", "__pycache__", "build", "dist"))
+    shutil.copy2(ROOT / "copier.yml", old / "copier.yml")
+    run(["git", "add", "."], cwd=old)
+    run(["git", "commit", "-m", "Add packaging infrastructure"], cwd=old)
+    run(["git", "tag", "v2.1.0"], cwd=old)
+    run([*copier, "update", "--defaults", "--vcs-ref", "v2.1.0"], cwd=upgraded, env=env)
+    after = yaml.safe_load((upgraded / ".copier-answers.yml").read_text(encoding="utf-8"))
+    assert after["_commit"] == "v2.1.0"
+    assert all(after[key] == value for key, value in before.items() if key != "_commit")
+    assert user_file.read_text(encoding="utf-8") == "Keep unrelated user work.\n"
+    assert "// Retain this user source edit." in source.read_text(encoding="utf-8")
+    assert (upgraded / "cmake/LibraryConfig.cmake.in").exists()
+    assert (upgraded / "vcpkg-ports" / after["vcpkg_port_name"] / "portfile.cmake").exists()
+    assert not list(upgraded.rglob("*.rej"))
+    run([py, upgraded / "scripts/validate_vcpkg.py"], cwd=upgraded, env=env)
+    print("Previous-master Copier packaging update passed: answers, user file/source edits, and independent consumer.", flush=True)
     print("Template validation passed: defaults, custom answers, tagged update, retained local edits, identifier validation, and actual build/tests.")
     if temporary:
         temporary.cleanup()

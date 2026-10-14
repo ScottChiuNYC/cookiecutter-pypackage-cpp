@@ -22,6 +22,9 @@ def validate_vcpkg(project, env):
         work = Path(directory)
         triplets = work / "triplets"
         triplets.mkdir()
+        # Host helpers need the same pinned Ninja setup as the existing presets.
+        shutil.copy2(Path(env["PROJECT_DEV_TOOLS"]) / "triplets" / f"{base_triplet}.cmake",
+                     triplets / f"{base_triplet}.cmake")
         for linkage in linkages:
             triplet = f"x64-packaging-{linkage}"
             content = (

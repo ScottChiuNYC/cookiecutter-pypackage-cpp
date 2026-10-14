@@ -13,6 +13,12 @@ import venv
 
 def run(command, *, cwd=None, env=None):
     command = [str(part) for part in command]
+    # Windows CreateProcess does not search the PATH supplied in the child env.
+    # Resolve bare tool names here so both platforms launch the selected tools.
+    if env is not None and not os.path.dirname(command[0]):
+        executable = shutil.which(command[0], path=env.get("PATH"))
+        if executable:
+            command[0] = str(Path(executable).resolve())
     print("+ " + subprocess.list2cmdline(command), flush=True)
     subprocess.run(command, cwd=cwd, env=env, check=True)
 

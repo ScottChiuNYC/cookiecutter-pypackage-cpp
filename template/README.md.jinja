@@ -100,7 +100,7 @@ Linux, from `consumer/`, with `$VCPKG_ROOT` pointing to a bootstrapped checkout:
 
 ```bash
 "$VCPKG_ROOT/vcpkg" install --triplet x64-linux --binarysource=clear
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_{{ module_name }}_core::core_TRIPLET=x64-linux -DVCPKG_INSTALLED_DIR="$PWD/vcpkg_installed" -DVCPKG_MANIFEST_INSTALL=OFF
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_INSTALLED_DIR="$PWD/vcpkg_installed" -DVCPKG_MANIFEST_INSTALL=OFF
 cmake --build build
 ./build/consumer
 ```
@@ -109,7 +109,7 @@ Windows PowerShell, from `consumer/`, with `$env:VCPKG_ROOT` set:
 
 ```powershell
 & "$env:VCPKG_ROOT/vcpkg.exe" install --triplet x64-windows --binarysource=clear
-cmake -S . -B build -G "Visual Studio 17 2022" -A x64 "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_{{ module_name }}_core::core_TRIPLET=x64-windows "-DVCPKG_INSTALLED_DIR=$PWD/vcpkg_installed" -DVCPKG_MANIFEST_INSTALL=OFF
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64 "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows "-DVCPKG_INSTALLED_DIR=$PWD/vcpkg_installed" -DVCPKG_MANIFEST_INSTALL=OFF
 cmake --build build --config Release
 ./build/Release/consumer.exe
 ```

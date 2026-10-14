@@ -24,6 +24,11 @@ author_email:
 version:
   type: str
   default: "0.1.0"
+vcpkg_port_name:
+  type: str
+  default: "{{ module_name.lower().replace('_', '-').strip('-') }}-core"
+  validator: >-
+    {% if not (vcpkg_port_name | regex_search("^[a-z0-9]+(-[a-z0-9]+)*$")) or vcpkg_port_name == 'gtest' or vcpkg_port_name.startswith('vcpkg-') %}Use a lowercase vcpkg name with hyphens; gtest and vcpkg-* are reserved.{% endif %}
 python_version:
   type: str
   default: ">=3.12"

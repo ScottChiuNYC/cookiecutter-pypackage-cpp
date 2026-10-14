@@ -1,14 +1,18 @@
 cmake_minimum_required(VERSION {{ cmake_min_version }})
-project({{ module_name }} LANGUAGES CXX)
+project({{ module_name }} VERSION {{ version.split('!')[-1] | regex_search("[0-9]+(\\.[0-9]+){0,3}") }} LANGUAGES CXX)
 
 include(CTest)
+option(BUILD_PYTHON_BINDINGS "Build the pybind11 extension" ON)
+option(BUILD_EXAMPLES "Build example programs" ON)
 
 set(CMAKE_CXX_STANDARD {{ cpp_standard }})
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_subdirectory(cpp)
-add_subdirectory(examples/cpp)
+if(BUILD_EXAMPLES)
+    add_subdirectory(examples/cpp)
+endif()
 
 if(BUILD_TESTING)
     add_subdirectory(tests/cpp)

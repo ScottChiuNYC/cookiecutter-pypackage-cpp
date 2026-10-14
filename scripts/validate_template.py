@@ -22,6 +22,9 @@ def main():
         os.environ["VCPKG_ROOT"] = selected.read_text(encoding="utf-8")
     py, env, _ = tool_environment(ROOT / "template", tools)
     if Path(sys.prefix).resolve() != (tools / "venv").resolve():
+        # Preserve the unactivated runner used by generated-project workflows.
+        env["TEMPLATE_RUNNER_PYTHON"] = sys.executable
+        env["TEMPLATE_RUNNER_PATH"] = os.environ["PATH"]
         run([py, __file__, *sys.argv[1:]], env=env)
         return
     temporary = tempfile.TemporaryDirectory(prefix="template-validation-") if args.work_dir is None else None
@@ -96,7 +99,14 @@ def main():
     result = subprocess.run([str(x) for x in [*copier, "copy", "--defaults", *bad, fixture, work / "invalid"]], env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     assert result.returncode != 0 and "Use a valid identifier." in result.stdout, result.stdout
     print(f"Identifier rejection passed (expected exit {result.returncode}).", flush=True)
-    run([py, project / "scripts/validate.py", *(["--wheel"] if python_package else [])], env=env)
+    # Use the generated project's own tools and the workflow's original Python/PATH.
+    # Inheriting the template tool PATH would hide Windows executable lookup failures.
+    runner = os.environ.get("TEMPLATE_RUNNER_PYTHON", sys.executable)
+    project_env = os.environ.copy()
+    project_env["PATH"] = os.environ.get("TEMPLATE_RUNNER_PATH", os.environ["PATH"])
+    project_env.pop("PROJECT_DEV_TOOLS", None)
+    run([runner, project / "scripts/bootstrap.py", "--vcpkg-root", env["VCPKG_ROOT"]], cwd=project, env=project_env)
+    run([runner, project / "scripts/validate.py", *(["--wheel"] if python_package else [])], cwd=project, env=project_env)
     print("Template validation passed: defaults, custom answers, tagged update, retained local edits, identifier validation, and actual build/tests.")
     if temporary:
         temporary.cleanup()

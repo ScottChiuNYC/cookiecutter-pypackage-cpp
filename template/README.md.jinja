@@ -2,19 +2,24 @@
 
 Poetry + pybind11 + CMake + vcpkg + GoogleTest + pytest.
 
+## Reproducible setup and validation
+
+From a fresh checkout:
+
+```bash
+python scripts/bootstrap.py
+python scripts/validate.py --wheel
+```
+
+Requires Python 3.12+, Git and a platform C++17 toolchain (GCC/Clang on Linux; Visual Studio 2022 C++ tools and a Windows SDK on Windows). Linux also needs curl, zip, unzip and tar. Bootstrap installs pinned tools and the declared vcpkg baseline in `.dev-tools`. Validation configures, builds and runs CTest/pytest, then rebuilds a native wheel from the sdist and checks its installation in a clean environment.
+
+The scripts supply tool paths automatically, including Ninja inside vcpkg compiler detection. Compiler tracking remains enabled. No shell activation or manual path setup is required.
+
 ## Development contract
 
 Before adding implementation, dependencies, bindings, tests, or build-system changes, read [`docs/development/PROJECT_SKELETON_CONTRACT.md`](docs/development/PROJECT_SKELETON_CONTRACT.md). It is the normative guide to this project's C++/Python source layout, dependency wiring, packaging, build, test, and CI extension points.
 
 Domain implementation documents should describe what to implement; the Project Skeleton Contract describes how that implementation fits into this repository.
-
-## Requirements
-
-- Python {{ python_version }}
-- CMake {{ cmake_min_version }}+
-- Poetry
-- a vcpkg checkout referenced by `VCPKG_ROOT`
-- Visual Studio 2022 on Windows, or Ninja plus a C++{{ cpp_standard }} compiler on Linux
 
 ## vcpkg dependencies
 
@@ -22,26 +27,9 @@ Domain implementation documents should describe what to implement; the Project S
 
 The local GoogleTest port preserves the standard `GTest::*` CMake targets but skips the pkg-config executable check, preventing vcpkg from downloading or executing `pkgconf`. No personal vcpkg registry is required. When this recipe is updated, change the files under `vcpkg-ports/gtest` and validate the project on Windows and Linux.
 
-## Windows
+## Build presets
 
-```powershell
-cmake --preset windows-vcpkg
-cmake --build --preset windows-release
-ctest --preset windows-release-tests
-$env:PYTHONPATH = "$PWD/src"
-poetry run pytest tests/python
-```
-
-For a Debug developer build, `cnb.bat` configures, builds, and runs CTest.
-
-## Linux
-
-```bash
-cmake --preset linux-vcpkg-release
-cmake --build --preset linux-release
-ctest --preset linux-release-tests
-PYTHONPATH="$PWD/src" poetry run pytest tests/python
-```
+Validation uses `windows-vcpkg` / `windows-release` / `windows-release-tests` on Windows and `linux-vcpkg-release` / `linux-release` / `linux-release-tests` on Linux. Windows uses Visual Studio 2022; Linux uses Ninja. `CMakePresets.json` also contains Debug presets. Keep preset changes aligned with `scripts/validate.py` and the Poetry native build hook in `build.py`.
 
 The pybind extension is emitted directly into `src/{{ module_name }}` on both platforms, so Python tests import the freshly built native module without generator-specific copy logic. pybind11 remains managed by the existing CMake `FetchContent` configuration.
 
@@ -49,13 +37,6 @@ The pybind extension is emitted directly into `src/{{ module_name }}` on both pl
 
 `.github/workflows/build-and-test.yml` runs the Release build, CTest, and pytest on Windows and Linux whenever implementation, dependency, build-system, overlay-port, or test files change. It reads the Microsoft vcpkg checkout commit directly from `vcpkg-configuration.json` and verifies after configure that `pkgconf` was neither installed nor acquired.
 
-## Reproducible setup and validation
-
-```bash
-python scripts/bootstrap.py
-python scripts/validate.py --wheel
-```
-
-Requires Python 3.12+, Git and a platform C++17 toolchain (GCC/Clang on Linux; Visual Studio 2022 C++ tools on Windows). The scripts install pinned tools and the declared vcpkg baseline in `.dev-tools`, then use the canonical presets. No shell activation or manual Ninja path debugging is required. Linux forwards the installed Ninja path into vcpkg compiler detection; compiler tracking remains enabled.
+## Template updates
 
 Commit `.copier-answers.yml` and project changes before `copier update --vcs-ref <template-tag>`. Template Git tags version updates independently of your project's version.

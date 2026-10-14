@@ -167,32 +167,23 @@ A packaging change is complete only when the intended clean artifact can import 
 
 ## 8. Canonical developer build and test flows
 
-For fresh environments, first run `python scripts/bootstrap.py` and `python scripts/validate.py --wheel`. These scripts supply the pinned tools, vcpkg checkout and nested Ninja path. For manual builds, set `VCPKG_ROOT` to the intended vcpkg checkout before configuring. Install the Poetry development environment before invoking `poetry run`.
-
-### Windows
-
-```powershell
-poetry install --no-root --no-ansi
-cmake --preset windows-vcpkg
-cmake --build --preset windows-release
-ctest --preset windows-release-tests
-$env:PYTHONPATH = "$PWD/src"
-poetry run pytest tests/python
-```
-
-### Linux
+For fresh environments, run:
 
 ```bash
-poetry install --no-root --no-ansi
-cmake --preset linux-vcpkg-release
-cmake --build --preset linux-release
-ctest --preset linux-release-tests
-PYTHONPATH="$PWD/src" poetry run pytest tests/python
+python scripts/bootstrap.py
+python scripts/validate.py --wheel
 ```
+
+These scripts supply the pinned tools, vcpkg checkout and Ninja path for nested vcpkg processes and the parent Linux configure. `scripts/validate.py` runs `poetry install --no-root`, CMake configure/build, CTest and pytest with the freshly built module on `PYTHONPATH`; `--wheel` also rebuilds a native wheel from the sdist and checks clean installation.
+
+| Platform | Configure preset | Build preset | Test preset |
+| --- | --- | --- | --- |
+| Windows | `windows-vcpkg` | `windows-release` | `windows-release-tests` |
+| Linux | `linux-vcpkg-release` | `linux-release` | `linux-release-tests` |
 
 For package validation, `poetry build` must continue to invoke the native build through `build.py`.
 
-Project-specific helper scripts may wrap these commands, but the CMake/Poetry build remains authoritative.
+Keep tool-path setup in `scripts/bootstrap.py` and canonical build/test sequencing in `scripts/validate.py`; the CMake/Poetry build remains authoritative.
 
 ## 9. CMake presets
 

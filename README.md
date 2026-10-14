@@ -11,7 +11,7 @@ cd my-project
 git init
 git add .
 git commit -m "Generate project"
-# After committing your project changes, select a published template Git tag:
+# After committing your project changes, update to the latest template revision:
 copier update
 ```
 
@@ -28,7 +28,7 @@ python scripts/bootstrap.py
 python scripts/validate_template.py
 ```
 
-Bootstrap installs the exact tool versions in `template/scripts/tool-requirements.txt` into `.dev-tools/venv`, checks out the vcpkg baseline declared in `template/vcpkg-configuration.json`, and bootstraps it. Validation needs no activation, manual PATH changes, or exported variables. Linux pins the installed Ninja path in both the parent configure and a local vcpkg triplet; compiler tracking stays enabled. Windows retains the Visual Studio preset.
+Bootstrap installs the exact tool versions in `template/scripts/tool-requirements.txt` into `.dev-tools/venv`, checks out the vcpkg baseline declared in `template/vcpkg-configuration.json`, and bootstraps it. Validation needs no activation, manual PATH changes, or exported variables. Both platforms supply the installed Ninja path to nested vcpkg processes; Linux also pins the parent configure path. Compiler tracking stays enabled, and Windows retains the Visual Studio preset.
 
 To reuse an already pinned vcpkg checkout:
 

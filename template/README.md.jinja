@@ -1,0 +1,42 @@
+# {{ module_name }}
+
+Poetry + pybind11 + CMake + vcpkg + GoogleTest + pytest.
+
+## Reproducible setup and validation
+
+From a fresh checkout:
+
+```bash
+python scripts/bootstrap.py
+python scripts/validate.py --wheel
+```
+
+Requires Python 3.12+, Git and a platform C++17 toolchain (GCC/Clang on Linux; Visual Studio 2022 C++ tools and a Windows SDK on Windows). Linux also needs curl, zip, unzip and tar. Bootstrap installs pinned tools and the declared vcpkg baseline in `.dev-tools`. Validation configures, builds and runs CTest/pytest, then rebuilds a native wheel from the sdist and checks its installation in a clean environment.
+
+The scripts supply tool paths automatically, including Ninja inside vcpkg compiler detection. Compiler tracking remains enabled. No shell activation or manual path setup is required.
+
+## Development contract
+
+Before adding implementation, dependencies, bindings, tests, or build-system changes, read [`docs/development/PROJECT_SKELETON_CONTRACT.md`](docs/development/PROJECT_SKELETON_CONTRACT.md). It is the normative guide to this project's C++/Python source layout, dependency wiring, packaging, build, test, and CI extension points.
+
+Domain implementation documents should describe what to implement; the Project Skeleton Contract describes how that implementation fits into this repository.
+
+## vcpkg dependencies
+
+`vcpkg-configuration.json` keeps Microsoft vcpkg as the only package registry and declares the repository-local `vcpkg-ports` directory as an overlay. The `gtest` dependency is resolved from `vcpkg-ports/gtest` before registry lookup; all other ports continue to come from Microsoft vcpkg.
+
+The local GoogleTest port preserves the standard `GTest::*` CMake targets but skips the pkg-config executable check, preventing vcpkg from downloading or executing `pkgconf`. No personal vcpkg registry is required. When this recipe is updated, change the files under `vcpkg-ports/gtest` and validate the project on Windows and Linux.
+
+## Build presets
+
+Validation uses `windows-vcpkg` / `windows-release` / `windows-release-tests` on Windows and `linux-vcpkg-release` / `linux-release` / `linux-release-tests` on Linux. Windows uses Visual Studio 2022; Linux uses Ninja. `CMakePresets.json` also contains Debug presets. Keep preset changes aligned with `scripts/validate.py` and the Poetry native build hook in `build.py`.
+
+The pybind extension is emitted directly into `src/{{ module_name }}` on both platforms, so Python tests import the freshly built native module without generator-specific copy logic. pybind11 remains managed by the existing CMake `FetchContent` configuration.
+
+## Continuous integration
+
+`.github/workflows/build-and-test.yml` runs the Release build, CTest, and pytest on Windows and Linux whenever implementation, dependency, build-system, overlay-port, or test files change. It reads the Microsoft vcpkg checkout commit directly from `vcpkg-configuration.json` and verifies after configure that `pkgconf` was neither installed nor acquired.
+
+## Template updates
+
+Commit `.copier-answers.yml` and project changes before `copier update --vcs-ref <template-tag>`. Template Git tags version updates independently of your project's version.

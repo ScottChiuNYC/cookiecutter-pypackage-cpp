@@ -2,172 +2,33 @@ name: Template Acceptance
 
 on:
   workflow_dispatch:
+  push:
   pull_request:
 
 permissions:
   contents: read
 
-concurrency:
-  group: template-acceptance-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  VCPKG_ROOT: ${{ github.workspace }}/vcpkg
-  VCPKG_DISABLE_METRICS: 1
-  POETRY_NO_INTERACTION: 1
-  GENERATED_PROJECT: ci-sample
-  PYTHONPATH: ${{ github.workspace }}/ci-sample/src
-
 jobs:
-  generate-build-test:
-    name: ${{ matrix.name }}
+  validate:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - name: Linux
-            os: ubuntu-latest
-            configure_preset: linux-vcpkg-release
-            build_preset: linux-release
-            test_preset: linux-release-tests
-          - name: Windows
-            os: windows-2022
-            configure_preset: windows-vcpkg
-            build_preset: windows-release
-            test_preset: windows-release-tests
-
+        os: [ubuntu-latest, windows-2022]
     steps:
-      - name: Check out cookiecutter
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - name: Install Cookiecutter and Poetry
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install cookiecutter "poetry>=1.8,<3"
-
-      - name: Generate sample project
-        run: >-
-          cookiecutter --no-input .
-          project_name=ci_sample
-          project_slug=ci-sample
-          module_name=ci_sample
-
-      - name: Verify rendered workflow and local overlay
-        id: vcpkg-baseline
-        shell: python
-        run: |
-          import json
-          import os
-          from pathlib import Path
-
-          project = Path("ci-sample")
-          workflow = (project / ".github/workflows/build-and-test.yml").read_text(
-              encoding="utf-8"
-          )
-          github_matrix_expression = "$" + "{{ matrix.os }}"
-          assert "{%" not in workflow
-          assert "cookiecutter." not in workflow
-          assert github_matrix_expression in workflow
-          assert "python-version: '3.12'" in workflow
-          assert "Verify pkgconf was neither installed nor acquired" in workflow
-          assert "vcpkg-ports/**" in workflow
-
-          configuration_path = project / "vcpkg-configuration.json"
-          configuration_text = configuration_path.read_text(encoding="utf-8")
-          configuration = json.loads(configuration_text)
-          assert configuration["default-registry"] == {
-              "kind": "git",
-              "baseline": "00807e89724847a866033a2f042c38fafae3c534",
-              "repository": "https://github.com/microsoft/vcpkg",
-          }
-          assert configuration["overlay-ports"] == ["vcpkg-ports"]
-          assert "ScottChiuNYC/vcpkg-registry" not in configuration_text
-          assert all(
-              registry.get("kind") != "git"
-              for registry in configuration.get("registries", [])
-          )
-
-          overlay = project / "vcpkg-ports/gtest"
-          manifest = json.loads((overlay / "vcpkg.json").read_text(encoding="utf-8"))
-          portfile = (overlay / "portfile.cmake").read_text(encoding="utf-8")
-          assert manifest["name"] == "gtest"
-          assert manifest["version-semver"] == "1.17.0"
-          assert manifest["port-version"] == 3
-          assert "REPO google/googletest" in portfile
-          assert "vcpkg_fixup_pkgconfig(SKIP_CHECK)" in portfile
-
-          baseline = configuration["default-registry"]["baseline"]
-          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-              output.write(f"sha={baseline}\n")
-
-      - name: Check out pinned vcpkg
-        uses: actions/checkout@v4
+          cache: pip
+          cache-dependency-path: template/scripts/tool-requirements.txt
+      - uses: actions/cache@v4
         with:
-          repository: microsoft/vcpkg
-          ref: ${{ steps.vcpkg-baseline.outputs.sha }}
-          path: vcpkg
-          fetch-depth: 1
-          persist-credentials: false
-
-      - name: Bootstrap vcpkg on Linux
-        if: runner.os == 'Linux'
-        shell: bash
-        run: ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
-
-      - name: Bootstrap vcpkg on Windows
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
-
-      - name: Install generated Python dependencies
-        working-directory: ci-sample
-        run: poetry install --no-root --no-ansi
-
-      - name: Configure generated project
-        working-directory: ci-sample
-        run: cmake --preset "${{ matrix.configure_preset }}"
-
-      - name: Verify pkgconf was neither installed nor acquired
-        working-directory: ci-sample
-        shell: python
-        run: |
-          import os
-          from pathlib import Path
-
-          installed = sorted(Path("build").glob("*/vcpkg_installed/vcpkg/info/pkgconf_*"))
-          downloads = Path(os.environ["VCPKG_ROOT"]) / "downloads"
-          acquired = []
-          for directory in (downloads, downloads / "tools"):
-              if not directory.exists():
-                  continue
-              acquired.extend(
-                  path for path in directory.iterdir()
-                  if path.name.lower() == "pkgconf"
-                  or path.name.lower().startswith("pkgconf-")
-              )
-          acquired = sorted(acquired)
-
-          if installed or acquired:
-              raise SystemExit(
-                  f"pkgconf unexpectedly present; installed={installed}, acquired={acquired}"
-              )
-
-          print("Confirmed: generated project used the local gtest overlay without pkgconf.")
-
-      - name: Build generated C++ and pybind module
-        working-directory: ci-sample
-        run: cmake --build --preset "${{ matrix.build_preset }}"
-
-      - name: Run generated CTest suite
-        working-directory: ci-sample
-        run: ctest --preset "${{ matrix.test_preset }}"
-
-      - name: Run generated Pytest suite
-        working-directory: ci-sample
-        run: poetry run pytest tests/python
+          path: |
+            ~/.cache/vcpkg/archives
+            ~/AppData/Local/vcpkg/archives
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('template/vcpkg-configuration.json', 'template/vcpkg-ports/**', 'template/scripts/tool-requirements.txt') }}
+      - name: Bootstrap pinned tools and vcpkg
+        run: python scripts/bootstrap.py
+      - name: Validate
+        run: python scripts/validate_template.py

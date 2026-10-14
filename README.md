@@ -44,4 +44,6 @@ The validation script exercises default/custom Copier copy, real `v1.0.0` → `v
 
 `.github/workflows/template-acceptance.yml` runs these same two commands on Linux and Windows. Generated projects include their own bootstrap/validation scripts and a Windows/Linux workflow using those scripts. The vcpkg GoogleTest overlay remains local and validation checks that `pkgconf` was not installed or acquired.
 
+Generated projects build automatically on push and pull request, with a manual workflow trigger also available. `template/.github/workflows/build-and-test.yml.jinja` renders the project's selected Python version and preserves GitHub Actions expressions. Bootstrap and validation scripts are ordinary Python files under `scripts/`; `.jinja` is used only for project-specific substitution. Template validation checks both workflows' triggers, platform matrix and script entry points before executing the sample build/tests.
+
 No Docker, services, shell activation, personal vcpkg registry or custom infrastructure is needed. The first run downloads tools and compiles dependencies; later runs reuse local caches. Template acceptance on push allows Windows/Linux checks to finish before opening the migration PR.

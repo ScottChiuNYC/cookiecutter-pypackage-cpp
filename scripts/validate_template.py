@@ -58,6 +58,13 @@ def main():
     assert answers["_commit"] == "v1.0.0"
     workflow = (project / ".github/workflows/build-and-test.yml").read_text(encoding="utf-8")
     assert "${{ matrix.os }}" in workflow and "{%" not in workflow and "cookiecutter." not in workflow
+    acceptance = (ROOT / ".github/workflows/template-acceptance.yml").read_text(encoding="utf-8")
+    for content, command in ((acceptance, "python scripts/validate_template.py"), (workflow, "python scripts/validate.py" + (" --wheel" if python_package else ""))):
+        ci = yaml.load(content, Loader=yaml.BaseLoader)
+        assert {"push", "pull_request", "workflow_dispatch"} <= set(ci["on"])
+        job = ci["jobs"]["validate"]
+        assert set(job["strategy"]["matrix"]["os"]) == {"ubuntu-latest", "windows-2022"}
+        assert [step["run"] for step in job["steps"] if "run" in step] == ["python scripts/bootstrap.py", command]
     config = json.loads((project / "vcpkg-configuration.json").read_text(encoding="utf-8"))
     assert config["default-registry"]["repository"] == "https://github.com/microsoft/vcpkg"
     assert config["overlay-ports"] == ["vcpkg-ports"]
@@ -72,7 +79,7 @@ def main():
     run(["git", "commit", "-m", "Generated project with local edits"], cwd=project)
     template_readme = next((fixture / "template").glob("README.md*"))
     template_readme.write_text("Template update marker.\n\n" + template_readme.read_text(encoding="utf-8"), encoding="utf-8", newline="\n")
-    (fixture / "template/update-marker.txt.jinja").write_text("Tagged update passed.\n", encoding="utf-8", newline="\n")
+    (fixture / "template/update-marker.txt").write_text("Tagged update passed.\n", encoding="utf-8", newline="\n")
     run(["git", "add", "."], cwd=fixture)
     run(["git", "commit", "-m", "Template v2"], cwd=fixture)
     run(["git", "tag", "v1.1.0"], cwd=fixture)

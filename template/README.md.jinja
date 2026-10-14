@@ -35,7 +35,7 @@ The pybind extension is emitted directly into `src/{{ module_name }}` on both pl
 
 ## Continuous integration
 
-`.github/workflows/build-and-test.yml` runs the Release build, CTest, and pytest on Windows and Linux whenever implementation, dependency, build-system, overlay-port, or test files change. It reads the Microsoft vcpkg checkout commit directly from `vcpkg-configuration.json` and verifies after configure that `pkgconf` was neither installed nor acquired.
+Pushing this project to GitHub automatically runs `.github/workflows/build-and-test.yml` on Windows and Linux. Pull requests and manual runs also trigger it. The workflow invokes `python scripts/bootstrap.py` and `python scripts/validate.py --wheel`; those scripts build and test the project, validate the sdist/wheel, and check that `pkgconf` was neither installed nor acquired.
 
 ## Template updates
 

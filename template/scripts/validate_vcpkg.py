@@ -52,7 +52,10 @@ def validate_vcpkg(project, env):
                 for cache in (consumer / "buildtrees" / port).glob("*/CMakeCache.txt"):
                     text = cache.read_text()
                     assert "BUILD_PYTHON_BINDINGS:BOOL=OFF" in text
-                    assert "pybind11" not in text and "Python_EXECUTABLE" not in text
+                    keys = [line.split(":", 1)[0] for line in text.splitlines()
+                            if line and not line.startswith(("#", "//"))]
+                    assert not [key for key in keys if key != "BUILD_PYTHON_BINDINGS"
+                                and ("python" in key.lower() or "pybind11" in key.lower())]
             relocated = consumer / "relocated-installed"
             installed.rename(relocated)
             prefix = relocated / triplet

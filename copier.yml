@@ -1,0 +1,35 @@
+_min_copier_version: "9.19.1"
+_subdirectory: template
+
+project_name:
+  type: str
+  default: "my_project"
+project_slug:
+  type: str
+  default: "{{ project_name.lower().replace(' ', '-') }}"
+module_name:
+  type: str
+  default: "{{ project_slug.replace('-', '_') }}"
+  validator: >-
+    {% if not (module_name | regex_search("^[A-Za-z_][A-Za-z0-9_]*$")) or module_name in ['False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'try', 'while', 'with', 'yield'] %}Use a valid identifier.{% endif %}
+description:
+  type: str
+  default: "Add your description here"
+author_name:
+  type: str
+  default: "Your Name"
+author_email:
+  type: str
+  default: "you@example.com"
+version:
+  type: str
+  default: "0.1.0"
+python_version:
+  type: str
+  default: ">=3.12"
+cmake_min_version:
+  type: str
+  default: "3.25"
+cpp_standard:
+  type: str
+  default: "17"
